@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 222 25% 10%;
+  --foreground: 0 0% 100%;
+  --muted: 222 20% 14%;
+  --muted-foreground: 0 0% 70%;
+  --border: 222 20% 18%;
+  --primary: 220 70% 55%;
+  --primary-foreground: 0 0% 100%;
+  --card: 222 20% 12%;
+  --card-foreground: 0 0% 100%;
+}
+
+.dark {
+  --background: 222 25% 10%;
+  --foreground: 0 0% 100%;
+  --muted: 222 20% 14%;
+  --muted-foreground: 0 0% 70%;
+  --border: 222 20% 18%;
+  --primary: 220 70% 55%;
+  --primary-foreground: 0 0% 100%;
+  --card: 222 20% 12%;
+  --card-foreground: 0 0% 100%;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.hover-lift {
+  transition: transform 200ms var(--ease, cubic-bezier(0.2, 0.8, 0.2, 1));
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* shadcn-like animation utilities */
+@keyframes appmodal-enter {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes appmodal-exit {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.95); }
+}
+.animate-in { animation: appmodal-enter 150ms ease-out forwards; }
+.animate-out { animation: appmodal-exit 150ms ease-in forwards; }
