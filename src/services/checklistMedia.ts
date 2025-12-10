@@ -1,4 +1,5 @@
 import { supabase } from '@/config/supabase'
+import imageCompression from 'browser-image-compression'
 
 export type ChecklistMediaItem = {
   type: 'photo'
@@ -31,9 +32,15 @@ export async function uploadChecklistMedia(
   if (images.length === 0) return existing ?? []
   const nextMedia: ChecklistMediaItem[] = [...(existing ?? [])]
   for (const f of images) {
-    const ext = getExt(f)
+    // Compress image before upload, fallback to original if compression fails
+    const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
+    let fileToUpload: File = f
+    try {
+      fileToUpload = (await imageCompression(f, options)) as File
+    } catch {}
+    const ext = getExt(fileToUpload)
     const path = `${checklistId}/${crypto.randomUUID()}.${ext}`
-    const { error } = await supabase.storage.from('checklists').upload(path, f, { upsert: false })
+    const { error } = await supabase.storage.from('checklists').upload(path, fileToUpload, { upsert: false })
     if (error) throw new Error(`Upload falhou: ${error.message}`)
     nextMedia.push({ type: 'photo', path, created_at: new Date().toISOString() })
   }

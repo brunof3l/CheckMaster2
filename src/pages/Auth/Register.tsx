@@ -6,7 +6,7 @@ import Input from '@/components/ui/Input'
 import Card from '@/components/ui/Card'
 import { toast } from 'sonner'
 import { useNavigate, Link } from 'react-router-dom'
-import { signUp, signIn } from '@/services/auth'
+import { supabase } from '@/config/supabase'
 
 const schema = z
   .object({
@@ -21,12 +21,23 @@ export default function Register() {
   const navigate = useNavigate()
   const { register, handleSubmit, formState } = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) })
 
-  async function onSubmit(values: z.infer<typeof schema>) {
+  async function handleRegister(values: z.infer<typeof schema>) {
     try {
-      await signUp({ name: values.name, email: values.email, password: values.password })
-      await signIn({ email: values.email, password: values.password })
-      toast.success('Cadastro concluído')
-      navigate('/checklists', { replace: true })
+      const { data, error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: { data: { name: values.name } },
+      })
+
+      if (!error) {
+        toast.success('Cadastro realizado com sucesso! Faça login para continuar.')
+        await supabase.auth.signOut()
+        toast.success('Cadastro realizado! Acesse sua conta.')
+        navigate('/login')
+        return
+      }
+
+      throw error
     } catch (e: any) {
       toast.error(e.message ?? 'Falha no cadastro')
     }
@@ -39,7 +50,7 @@ export default function Register() {
           <h1 className="text-xl font-semibold">Cadastro</h1>
           <p className="text-muted-foreground text-sm">Crie sua conta</p>
         </div>
-        <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+        <form className="space-y-4" onSubmit={handleSubmit(handleRegister)}>
           <div>
             <label className="text-sm mb-1 block">Nome</label>
             <Input placeholder="Seu nome" {...register('name')} />
@@ -62,8 +73,8 @@ export default function Register() {
               <p className="text-xs text-red-400 mt-1">{formState.errors.confirmPassword.message}</p>
             )}
           </div>
-          <Button type="submit" className="w-full">
-            Cadastrar
+          <Button type="submit" className="w-full" loading={formState.isSubmitting}>
+            {formState.isSubmitting ? 'Cadastrando...' : 'Cadastrar'}
           </Button>
         </form>
         <div className="mt-4 text-sm text-center">

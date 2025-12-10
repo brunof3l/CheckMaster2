@@ -20,7 +20,7 @@ export async function listChecklists({
   if (from) q = q.gte('created_at', from)
   if (to) q = q.lte('created_at', to)
   if (search) q = q.or(`vehicles.plate.ilike.%${search}%,suppliers.name.ilike.%${search}%`)
-  const { data, error } = await q
+  const { data, error } = await q.limit(50)
   if (error) throw new Error(error.message)
   return (data ?? []) as Checklist[]
 }

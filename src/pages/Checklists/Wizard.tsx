@@ -18,6 +18,7 @@ import { Paperclip, CheckCircle } from 'lucide-react'
 import SupplierForm from '@/components/forms/SupplierForm'
 import { createSupplierRow } from '@/services/suppliers'
 import { useAuthStore } from '@/store/auth'
+import imageCompression from 'browser-image-compression'
 
 
 type Step = 1 | 2 | 3 | 4
@@ -320,11 +321,20 @@ export default function ChecklistWizard() {
       const next = [...current]
       if (budgetPendingFiles.length > 0) {
         for (const f of budgetPendingFiles) {
-          const ext = f.name.toLowerCase().match(/\.(pdf|jpg|jpeg|png|webp)$/)?.[1] ?? 'pdf'
-          const path = `${checklistId}/budget/${crypto.randomUUID()}.${ext}`
-          const { error: upErr } = await supabase.storage.from('checklists').upload(path, f, { upsert: false })
+          const extMatch = f.name.toLowerCase().match(/\.(pdf|jpg|jpeg|png|webp|heic|heif)$/)?.[1] ?? 'pdf'
+          const isImage = /jpg|jpeg|png|webp|heic|heif/.test(extMatch)
+          let fileToUpload: File = f
+          if (isImage) {
+            const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
+            try { fileToUpload = (await imageCompression(f, options)) as File } catch {}
+          }
+          const finalExt = isImage
+            ? (fileToUpload.type === 'image/png' ? 'png' : fileToUpload.type === 'image/webp' ? 'webp' : 'jpg')
+            : extMatch
+          const path = `${checklistId}/budget/${crypto.randomUUID()}.${finalExt}`
+          const { error: upErr } = await supabase.storage.from('checklists').upload(path, fileToUpload, { upsert: false })
           if (upErr) throw new Error(upErr.message)
-          next.push({ path, name: f.name, size: f.size, type: f.type || `application/${ext}`, created_at: new Date().toISOString() })
+          next.push({ path, name: f.name, size: fileToUpload.size, type: isImage ? (fileToUpload.type || 'image/jpeg') : `application/${extMatch}`, created_at: new Date().toISOString() })
         }
       }
 
@@ -346,8 +356,12 @@ export default function ChecklistWizard() {
 
   async function uploadFuel(kind: 'entry' | 'exit', file: File) {
     if (!checklistId) return
-    const path = `${checklistId}/fuel/${kind}-${crypto.randomUUID()}.jpg`
-    const { error } = await supabase.storage.from('checklists').upload(path, file, { upsert: false })
+    const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
+    let fileToUpload: File = file
+    try { fileToUpload = (await imageCompression(file, options)) as File } catch {}
+    const finalExt = fileToUpload.type === 'image/png' ? 'png' : fileToUpload.type === 'image/webp' ? 'webp' : 'jpg'
+    const path = `${checklistId}/fuel/${kind}-${crypto.randomUUID()}.${finalExt}`
+    const { error } = await supabase.storage.from('checklists').upload(path, fileToUpload, { upsert: false })
     if (error) throw new Error(error.message)
     const created = { path, created_at: new Date().toISOString() }
     const next = {
@@ -411,11 +425,20 @@ export default function ChecklistWizard() {
       const nextBudget: any[] = Array.isArray(serverData?.budgetAttachments) ? [...serverData!.budgetAttachments] : []
       if (budgetPendingFiles.length > 0) {
         for (const f of budgetPendingFiles) {
-          const ext = f.name.toLowerCase().match(/\.(pdf|jpg|jpeg|png|webp)$/)?.[1] ?? 'pdf'
-          const path = `${checklistId}/budget/${crypto.randomUUID()}.${ext}`
-          const { error: upErr } = await supabase.storage.from('checklists').upload(path, f, { upsert: false })
+          const extMatch = f.name.toLowerCase().match(/\.(pdf|jpg|jpeg|png|webp|heic|heif)$/)?.[1] ?? 'pdf'
+          const isImage = /jpg|jpeg|png|webp|heic|heif/.test(extMatch)
+          let fileToUpload: File = f
+          if (isImage) {
+            const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
+            try { fileToUpload = (await imageCompression(f, options)) as File } catch {}
+          }
+          const finalExt = isImage
+            ? (fileToUpload.type === 'image/png' ? 'png' : fileToUpload.type === 'image/webp' ? 'webp' : 'jpg')
+            : extMatch
+          const path = `${checklistId}/budget/${crypto.randomUUID()}.${finalExt}`
+          const { error: upErr } = await supabase.storage.from('checklists').upload(path, fileToUpload, { upsert: false })
           if (upErr) throw new Error(upErr.message)
-          nextBudget.push({ path, name: f.name, size: f.size, type: f.type || `application/${ext}`, created_at: new Date().toISOString() })
+          nextBudget.push({ path, name: f.name, size: fileToUpload.size, type: isImage ? (fileToUpload.type || 'image/jpeg') : `application/${extMatch}`, created_at: new Date().toISOString() })
         }
       }
       const finalBudget = nextBudget
