@@ -2,7 +2,7 @@ import HeaderPage from '@/components/ui/HeaderPage'
 import Card from '@/components/ui/Card'
 import Skeleton from '@/components/ui/Skeleton'
 import Button from '@/components/ui/Button'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useChecklistDetail } from '@/hooks/useChecklists'
 import Input from '@/components/ui/Input'
 import { useState, useEffect } from 'react'
@@ -15,6 +15,7 @@ type LocalChecklist = any
 
 export default function ChecklistDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [notes, setNotes] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -35,29 +36,43 @@ export default function ChecklistDetail() {
   }, [data?.notes])
 
   useEffect(() => {
-    ;(async () => {
-      const items = (data?.media ?? []) as ChecklistMediaItem[]
-      const urls = await getChecklistMediaUrls(items)
-      setMedia(urls)
-      const atts = (data?.budgetAttachments ?? []) as { path: string; name?: string; size?: number; type?: string; created_at: string }[]
-      const out: { path: string; name?: string; size?: number; type?: string; created_at: string; url: string | null }[] = []
-      for (const a of atts) {
-        const { data: u, error } = await supabase.storage.from('checklists').createSignedUrl(a.path, 3600)
-        out.push({ ...a, url: error ? null : u.signedUrl })
+    if (!data) return
+    const loadUrls = async () => {
+      // 1. Fotos Gerais (Media)
+      if (data.media && Array.isArray(data.media)) {
+        const urls = await getChecklistMediaUrls(data.media as ChecklistMediaItem[])
+        setMedia(urls)
       }
-      setBudget(out)
-      const entry = (data?.fuelGaugePhotos?.entry ?? null) as { path: string } | null
-      const exit = (data?.fuelGaugePhotos?.exit ?? null) as { path: string } | null
-      if (entry) {
-        const { data: u, error } = await supabase.storage.from('checklists').createSignedUrl(entry.path, 3600)
-        setFuelEntryUrl(error ? null : u.signedUrl)
-      } else setFuelEntryUrl(null)
-      if (exit) {
-        const { data: u, error } = await supabase.storage.from('checklists').createSignedUrl(exit.path, 3600)
-        setFuelExitUrl(error ? null : u.signedUrl)
-      } else setFuelExitUrl(null)
-    })()
-  }, [data?.media])
+
+      // 2. Orçamento (Budget)
+      if (data.budgetAttachments && Array.isArray(data.budgetAttachments)) {
+        const budgetWithUrls = await Promise.all(
+          (data.budgetAttachments as any[]).map(async (item: any) => {
+            const { data: u } = await supabase.storage.from('checklists').createSignedUrl(item.path, 3600)
+            return { ...item, url: u?.signedUrl || null }
+          })
+        )
+        setBudget(budgetWithUrls)
+      }
+
+      // 3. Combustível (Fuel)
+      if (data.fuelGaugePhotos) {
+        if (data.fuelGaugePhotos.entry?.path) {
+          const { data: u } = await supabase.storage.from('checklists').createSignedUrl(data.fuelGaugePhotos.entry.path, 3600)
+          if (u) setFuelEntryUrl(u.signedUrl)
+        } else {
+          setFuelEntryUrl(null)
+        }
+        if (data.fuelGaugePhotos.exit?.path) {
+          const { data: u } = await supabase.storage.from('checklists').createSignedUrl(data.fuelGaugePhotos.exit.path, 3600)
+          if (u) setFuelExitUrl(u.signedUrl)
+        } else {
+          setFuelExitUrl(null)
+        }
+      }
+    }
+    loadUrls()
+  }, [data])
 
   function saveNotes(value: string) {
     update.mutate({ notes: value }, { onError: (e: any) => toast.error(e.message ?? 'Erro ao salvar notas') })
@@ -276,10 +291,16 @@ export default function ChecklistDetail() {
           <SimpleModal open={!!viewImage} onClose={() => setViewImage(null)} title="Visualização">
             {viewImage && <img src={viewImage} className="w-full h-auto rounded-md" />}
           </SimpleModal>
-          <div className="flex gap-2">
-            <Button onClick={() => finalize.mutate(undefined, { onError: (e: any) => toast.error(e.message) })}>
-              Finalizar checklist
-            </Button>
+          <div className="flex gap-2 mt-6">
+            {data?.status === 'finalizado' || data?.is_locked ? (
+              <Button onClick={() => navigate('/checklists')}>
+                Voltar
+              </Button>
+            ) : (
+              <Button onClick={() => finalize.mutate(undefined, { onError: (e: any) => toast.error(e.message) })}>
+                Finalizar checklist
+              </Button>
+            )}
           </div>
         </>
       )}

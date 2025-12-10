@@ -85,33 +85,52 @@ export async function exportChecklistPDF(checklistId: string): Promise<void> {
     y += (Array.isArray(lines) ? lines.length : 1) * 5 + 6
   }
 
+  // Seção de Orçamento: exibir imagem dos anexos de orçamento e remover Total/Notas
   doc.setFontSize(12)
   doc.text('Orçamento', margin, y)
   y += 6
-  autoTable(doc, {
-    startY: y,
-    theme: 'striped',
-    styles: { fontSize: 9 },
-    head: [['Campo', 'Valor']],
-    body: [
-      ['Total', String((checklist as any)?.items?.meta?.budget_total ?? '-')],
-      ['Notas', String((checklist as any)?.items?.meta?.budget_notes ?? '-')],
-    ],
-  })
-  y = (doc as any).lastAutoTable.finalY + 8
+  const budgetAtts = (((checklist as any)?.budgetAttachments ?? []) as { path: string; type?: string }[])
+  const budgetImages = budgetAtts
+    .filter((a) => (a.type ?? '').startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(a.path))
+    .map((a) => a.path)
 
+  if (budgetImages.length === 0) {
+    doc.setFontSize(10)
+    doc.text('Sem anexos', margin, y)
+    y += 6
+  } else {
+    const pageW = doc.internal.pageSize.getWidth()
+    const pageH = doc.internal.pageSize.getHeight()
+    const gap = 6
+    const cols = 2
+    const imgW = (pageW - margin * 2 - gap) / cols
+    const imgH = 60
+    let col = 0
+    for (const p of budgetImages) {
+      const img = await pathToDataUrl(p)
+      if (!img) continue
+      const x = margin + col * (imgW + gap)
+      if (y + imgH > pageH - margin) {
+        doc.addPage()
+        y = margin
+      }
+      doc.addImage(img.dataUrl, img.format, x, y, imgW, imgH)
+      col++
+      if (col >= cols) {
+        col = 0
+        y += imgH + gap
+      }
+    }
+    y += 2
+  }
+
+  // Outras imagens e anexos (exceto orçamento) em "Anexos"
   const imagePaths: string[] = []
   const media = (((checklist as any)?.media ?? []) as { path: string }[])
   for (const m of media) imagePaths.push(m.path)
   const fuel = (checklist as any)?.fuelGaugePhotos ?? {}
   if (fuel?.entry?.path) imagePaths.push(fuel.entry.path)
   if (fuel?.exit?.path) imagePaths.push(fuel.exit.path)
-  const atts = (((checklist as any)?.budgetAttachments ?? []) as { path: string; type?: string }[])
-  for (const a of atts) {
-    const ext = a.path.toLowerCase().match(/\.(png|jpg|jpeg|webp)$/)?.[1] ?? ''
-    const isImage = (a.type ?? '').startsWith('image/') || !!ext
-    if (isImage) imagePaths.push(a.path)
-  }
 
   if (imagePaths.length > 0) {
     doc.setFontSize(12)

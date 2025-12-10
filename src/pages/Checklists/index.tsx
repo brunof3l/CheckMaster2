@@ -7,8 +7,8 @@ import DataTable, { Column } from '@/components/ui/DataTable'
 import Skeleton from '@/components/ui/Skeleton'
 import { useChecklistsList } from '@/hooks/useChecklists'
 import type { Checklist } from '@/types'
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getDashboardStats } from '@/services/checklists'
 import { useQuery } from '@tanstack/react-query'
 import { exportChecklistPDF } from '@/services/pdfExport'
@@ -66,6 +66,17 @@ export default function Checklists() {
   const [status, setStatus] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
+
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const s = location.state as any
+    if (s?.finalized) {
+      toast.success('Checklist finalizado')
+      navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [location, navigate])
 
   const { data: stats } = useQuery({ queryKey: ['dashboard-stats'], queryFn: getDashboardStats })
 
