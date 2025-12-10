@@ -71,7 +71,7 @@ export default function SuppliersAdmin() {
                   <td className="px-3 py-2">{s.trade_name ?? s.name ?? s.corporate_name ?? '-'}</td>
                   <td className="px-3 py-2">{s.phone ?? '-'}</td>
                   <td className="px-3 py-2">{s.email ?? '-'}</td>
-                  <td className="px-3 py-2">{s.created_at ?? '-'}</td>
+                  <td className="px-3 py-2">{s.created_at ? new Date(s.created_at).toLocaleString('pt-BR') : '-'}</td>
                 </tr>
               ))}
               {(data ?? []).length === 0 && (

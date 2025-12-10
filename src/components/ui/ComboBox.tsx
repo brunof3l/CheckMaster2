@@ -16,7 +16,7 @@ export default function ComboBox({ value, onChange, items = [], placeholder }: {
   const filtered = useMemo(() => (query === '' ? items : items.filter(i => i.label.toLowerCase().includes(query.toLowerCase()))), [items, query])
 
   return (
-    <Combobox value={value as any} onChange={(v) => { onChange(v as any) }} nullable>
+    <Combobox value={value as any} onChange={(v) => { onChange(v as any); setRawQuery(''); setQuery('') }} nullable>
       <div className="relative">
         <Combobox.Input className="w-full rounded-md px-3 py-2 bg-muted border border-border text-sm" displayValue={(item: Item) => item?.label ?? ''} onChange={(e) => { setRawQuery(e.target.value); setQueryDebounced(e.target.value) }} placeholder={placeholder} />
         <Transition as={Fragment} enter="transition ease-out duration-150" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="transition ease-in duration-120" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">

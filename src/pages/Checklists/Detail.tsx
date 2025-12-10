@@ -2,7 +2,7 @@ import HeaderPage from '@/components/ui/HeaderPage'
 import Card from '@/components/ui/Card'
 import Skeleton from '@/components/ui/Skeleton'
 import Button from '@/components/ui/Button'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useChecklistDetail } from '@/hooks/useChecklists'
 import Input from '@/components/ui/Input'
 import { useState, useEffect } from 'react'
@@ -15,6 +15,7 @@ type LocalChecklist = any
 
 export default function ChecklistDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [notes, setNotes] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -25,37 +26,53 @@ export default function ChecklistDetail() {
   const [budget, setBudget] = useState<{ path: string; name?: string; size?: number; type?: string; created_at: string; url: string | null }[]>([])
   const [fuelEntryUrl, setFuelEntryUrl] = useState<string | null>(null)
   const [fuelExitUrl, setFuelExitUrl] = useState<string | null>(null)
+  const [viewImage, setViewImage] = useState<string | null>(null)
 
   const { data, isLoading, update, finalize } = useChecklistDetail(id!)
+  const meta = (data?.items as any)?.meta || {}
 
   useEffect(() => {
     setNotes(data?.notes ?? '')
   }, [data?.notes])
 
   useEffect(() => {
-    ;(async () => {
-      const items = (data?.media ?? []) as ChecklistMediaItem[]
-      const urls = await getChecklistMediaUrls(items)
-      setMedia(urls)
-      const atts = (data?.budgetAttachments ?? []) as { path: string; name?: string; size?: number; type?: string; created_at: string }[]
-      const out: { path: string; name?: string; size?: number; type?: string; created_at: string; url: string | null }[] = []
-      for (const a of atts) {
-        const { data: u, error } = await supabase.storage.from('checklists').createSignedUrl(a.path, 3600)
-        out.push({ ...a, url: error ? null : u.signedUrl })
+    if (!data) return
+    const loadUrls = async () => {
+      // 1. Fotos Gerais (Media)
+      if (data.media && Array.isArray(data.media)) {
+        const urls = await getChecklistMediaUrls(data.media as ChecklistMediaItem[])
+        setMedia(urls)
       }
-      setBudget(out)
-      const entry = (data?.fuelGaugePhotos?.entry ?? null) as { path: string } | null
-      const exit = (data?.fuelGaugePhotos?.exit ?? null) as { path: string } | null
-      if (entry) {
-        const { data: u, error } = await supabase.storage.from('checklists').createSignedUrl(entry.path, 3600)
-        setFuelEntryUrl(error ? null : u.signedUrl)
-      } else setFuelEntryUrl(null)
-      if (exit) {
-        const { data: u, error } = await supabase.storage.from('checklists').createSignedUrl(exit.path, 3600)
-        setFuelExitUrl(error ? null : u.signedUrl)
-      } else setFuelExitUrl(null)
-    })()
-  }, [data?.media])
+
+      // 2. Orçamento (Budget)
+      if (data.budgetAttachments && Array.isArray(data.budgetAttachments)) {
+        const budgetWithUrls = await Promise.all(
+          (data.budgetAttachments as any[]).map(async (item: any) => {
+            const { data: u } = await supabase.storage.from('checklists').createSignedUrl(item.path, 3600)
+            return { ...item, url: u?.signedUrl || null }
+          })
+        )
+        setBudget(budgetWithUrls)
+      }
+
+      // 3. Combustível (Fuel)
+      if (data.fuelGaugePhotos) {
+        if (data.fuelGaugePhotos.entry?.path) {
+          const { data: u } = await supabase.storage.from('checklists').createSignedUrl(data.fuelGaugePhotos.entry.path, 3600)
+          if (u) setFuelEntryUrl(u.signedUrl)
+        } else {
+          setFuelEntryUrl(null)
+        }
+        if (data.fuelGaugePhotos.exit?.path) {
+          const { data: u } = await supabase.storage.from('checklists').createSignedUrl(data.fuelGaugePhotos.exit.path, 3600)
+          if (u) setFuelExitUrl(u.signedUrl)
+        } else {
+          setFuelExitUrl(null)
+        }
+      }
+    }
+    loadUrls()
+  }, [data])
 
   function saveNotes(value: string) {
     update.mutate({ notes: value }, { onError: (e: any) => toast.error(e.message ?? 'Erro ao salvar notas') })
@@ -103,19 +120,56 @@ export default function ChecklistDetail() {
       ) : (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card className="p-4">
-              <h2 className="font-semibold mb-3">Dados</h2>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Placa</span>
-                  <div>{data?.vehicles?.plate ?? '-'}</div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Fornecedor</span>
-                  <div>{data?.suppliers?.trade_name ?? data?.suppliers?.corporate_name ?? '-'}</div>
+          <Card className="p-4">
+            <h2 className="font-semibold mb-3">Dados</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div>
+                <span className="text-muted-foreground text-xs block">Nº Checklist</span>
+                <div className="text-sm font-medium">{data?.seq || data?.id}</div>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs block">Placa</span>
+                <div className="text-sm font-medium">{data?.vehicles?.plate || '-'}</div>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs block">Modelo/Marca</span>
+                <div className="text-sm font-medium">
+                  {data?.vehicles?.model} {data?.vehicles?.brand ? `/ ${data.vehicles.brand}` : ''}
                 </div>
               </div>
-            </Card>
+              <div>
+                <span className="text-muted-foreground text-xs block">Fornecedor</span>
+                <div className="text-sm font-medium">
+                  {data?.suppliers?.trade_name || data?.suppliers?.name || '-'}
+                </div>
+              </div>
+            
+              <div>
+                <span className="text-muted-foreground text-xs block">Serviço</span>
+                <div className="text-sm font-medium">
+                  {(data?.items as any)?.meta?.service || '-'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs block">KM</span>
+                <div className="text-sm font-medium">
+                  {(data?.items as any)?.meta?.km || '-'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs block">Responsável</span>
+                <div className="text-sm font-medium">
+                  {(data?.items as any)?.meta?.responsavel || data?.users?.name || '-'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs block">Data de criação</span>
+                <div className="text-sm font-medium">
+                  {data?.created_at ? new Date(data.created_at).toLocaleString('pt-BR') : '-'}
+                </div>
+              </div>
+            </div>
+          </Card>
 
           <Card className="p-4">
             <h2 className="font-semibold mb-3">Combustível</h2>
@@ -123,7 +177,11 @@ export default function ChecklistDetail() {
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Entrada</div>
                 {fuelEntryUrl ? (
-                  <img src={fuelEntryUrl} className="w-full h-32 object-cover rounded-md" />
+                  <img
+                    src={fuelEntryUrl}
+                    className="w-full h-32 object-cover rounded-md cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setViewImage(fuelEntryUrl!)}
+                  />
                 ) : (
                   <div className="text-xs text-muted-foreground">Sem foto</div>
                 )}
@@ -131,7 +189,11 @@ export default function ChecklistDetail() {
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Saída</div>
                 {fuelExitUrl ? (
-                  <img src={fuelExitUrl} className="w-full h-32 object-cover rounded-md" />
+                  <img
+                    src={fuelExitUrl}
+                    className="w-full h-32 object-cover rounded-md cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setViewImage(fuelExitUrl!)}
+                  />
                 ) : (
                   <div className="text-xs text-muted-foreground">Sem foto</div>
                 )}
@@ -142,24 +204,44 @@ export default function ChecklistDetail() {
 
       <Card className="p-4">
         <h2 className="font-semibold mb-3">Fotos</h2>
-        <div className="flex items-center gap-3">
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleUpload}
-            disabled={data?.is_locked || data?.status === 'finalizado'}
-          />
-          <Button variant="ghost" onClick={() => setOpen(true)}>
-            Abrir galeria
-          </Button>
-          <Button
-            onClick={handleSaveFiles}
-            loading={saving}
-            disabled={saving || pendingFiles.length === 0 || data?.is_locked || data?.status === 'finalizado'}
-          >
-            Salvar alterações
-          </Button>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4 mt-2">
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleUpload}
+              disabled={data?.is_locked || data?.status === 'finalizado'}
+              className="hidden"
+              id="photo-upload"
+            />
+            <label
+              htmlFor="photo-upload"
+              className="cursor-pointer bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2 rounded-md flex items-center justify-center text-sm font-medium w-full md:w-auto"
+            >
+              Escolher arquivos
+            </label>
+          </div>
+
+          <span className="text-sm text-muted-foreground truncate max-w-[200px] md:max-w-none">
+            {pendingFiles.length > 0
+              ? (pendingFiles.length === 1 ? pendingFiles[0].name : `${pendingFiles.length} arquivo(s) selecionado(s)`) 
+              : 'Nenhum arquivo escolhido'}
+          </span>
+
+          <div className="flex gap-2 w-full md:w-auto">
+            <Button variant="ghost" className="flex-1 md:flex-none border border-border" onClick={() => setOpen(true)}>
+              Abrir galeria
+            </Button>
+            <Button
+              onClick={handleSaveFiles}
+              loading={saving}
+              disabled={saving || pendingFiles.length === 0 || data?.is_locked || data?.status === 'finalizado'}
+              className="flex-1 md:flex-none"
+            >
+              {saving ? 'Enviando...' : 'Salvar alterações'}
+            </Button>
+          </div>
         </div>
         {pendingFiles.length > 0 && (
           <div className="text-sm text-muted-foreground mt-2">{pendingFiles.length} arquivo(s) para enviar</div>
@@ -177,20 +259,29 @@ export default function ChecklistDetail() {
       </Card>
 
           <Card className="p-4">
-            <h2 className="font-semibold mb-3">Itens com defeito</h2>
-            {Array.isArray((data?.items as any)?.defects) ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                {((data?.items as any).defects as { key: string; label: string; ok: boolean }[]).map((d) => (
-                  <div key={d.key} className={"px-2 py-1 rounded-md border " + (d.ok ? "border-green-700/60 bg-green-500/10 text-green-300" : "border-red-700/60 bg-red-500/10 text-red-300")}>{d.label}</div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-sm">Sem dados</p>
-            )}
-            {((data?.items as any)?.meta?.defects_note ?? '') ? (
-              <div className="mt-2 text-xs text-muted-foreground">{(data?.items as any).meta.defects_note}</div>
-            ) : null}
-          </Card>
+             <h2 className="font-semibold mb-3">Itens com defeito</h2>
+             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+               {((data?.items as any)?.defects ?? [])
+                 .filter((d: any) => d.checked)
+                 .map((d: any) => (
+                   <div
+                     key={d.key}
+                     className="px-3 py-2 rounded-md border border-red-700/60 bg-red-500/10 text-red-300 font-medium"
+                   >
+                     {d.label}
+                   </div>
+                 ))}
+               {((data?.items as any)?.defects ?? []).filter((d: any) => d.checked).length === 0 && (
+                 <p className="text-muted-foreground text-sm col-span-full">Nenhum defeito apontado.</p>
+               )}
+             </div>
+             {((data?.items as any)?.meta?.defects_note) && (
+               <div className="mt-3 p-3 rounded-md bg-muted/30 border border-border">
+                 <span className="text-xs text-muted-foreground uppercase font-bold block mb-1">Outros / Observações</span>
+                 <div className="text-sm">{(data?.items as any).meta.defects_note}</div>
+               </div>
+             )}
+           </Card>
 
           <Card className="p-4">
             <h2 className="font-semibold mb-3">Orçamento</h2>
@@ -206,16 +297,6 @@ export default function ChecklistDetail() {
                 ))}
               </div>
             )}
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-              <div>
-                <span className="text-muted-foreground text-sm">Total</span>
-                <div className="text-sm">{(data?.items as any)?.meta?.budget_total ?? '-'}</div>
-              </div>
-              <div>
-                <span className="text-muted-foreground text-sm">Notas</span>
-                <div className="text-sm">{(data?.items as any)?.meta?.budget_notes ?? '-'}</div>
-              </div>
-            </div>
           </Card>
 
           <Card className="p-4">
@@ -240,10 +321,25 @@ export default function ChecklistDetail() {
           <SimpleModal open={!!selected} onClose={() => setSelected(null)} title="Prévia da imagem">
             {selected && <img src={selected.url ?? ''} className="w-full h-auto rounded-md" />}
           </SimpleModal>
-          <div className="flex gap-2">
-            <Button onClick={() => finalize.mutate(undefined, { onError: (e: any) => toast.error(e.message) })}>
-              Finalizar checklist
-            </Button>
+          <SimpleModal open={!!viewImage} onClose={() => setViewImage(null)} title="Visualização">
+            {viewImage && <img src={viewImage} className="w-full h-auto rounded-md" />}
+          </SimpleModal>
+          <div className="flex gap-2 mt-6">
+            {data?.status === 'finalizado' || data?.is_locked ? (
+              <Button onClick={() => navigate('/checklists')}>
+                Voltar
+              </Button>
+            ) : (
+              <Button onClick={() => finalize.mutate(undefined, {
+                onSuccess: () => {
+                  toast.success('Checklist finalizado com sucesso!')
+                  navigate('/checklists')
+                },
+                onError: (e: any) => toast.error(e.message || 'Erro ao finalizar')
+              })}>
+                Finalizar checklist
+              </Button>
+            )}
           </div>
         </>
       )}

@@ -1,4 +1,12 @@
 export type ChecklistStatus = 'em_andamento' | 'finalizado' | 'cancelado'
+
+export type User = {
+  id: string
+  name: string | null
+  email: string
+  role: 'admin' | 'user'
+}
+
 export type Vehicle = {
   id: string
   plate: string
@@ -39,4 +47,7 @@ export type Checklist = {
   updated_at: string
   vehicles?: Vehicle | null
   suppliers?: Supplier | null
+  users?: User | null
+  service?: string | null
+  km?: number | null
 }

@@ -53,7 +53,7 @@ export default function ChecklistsAdmin() {
         </Badge>
       ),
     },
-    { key: 'created_at', header: 'Criado em' },
+    { key: 'created_at', header: 'Criado em', render: (r) => new Date(r.created_at).toLocaleString('pt-BR') },
     {
       key: 'actions',
       header: 'Ações',
@@ -89,7 +89,7 @@ export default function ChecklistsAdmin() {
           <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
-        <div className="mt-4">
+        <div className="mt-4 overflow-x-auto">
           <DataTable columns={columns} data={(data ?? []) as any} />
         </div>
       </Card>

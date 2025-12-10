@@ -20,7 +20,9 @@ export default function SimpleModal({ open, onClose, title, children }: { open: 
         }}
       >
         {title && <h3>{title}</h3>}
-        {children}
+        <div style={{ maxHeight: '85vh', overflowY: 'auto' }}>
+          {children}
+        </div>
         <div style={{ textAlign: 'right', marginTop: 12 }}>
           <button onClick={onClose}>Fechar</button>
         </div>

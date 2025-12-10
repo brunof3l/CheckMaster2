@@ -18,12 +18,12 @@ export default function Admin() {
     <div className="space-y-4">
       <HeaderPage title="Admin" />
       <Card className="p-3">
-        <div className="flex gap-2">
-          <Button variant={tab === 'users' ? 'primary' : 'ghost'} onClick={() => setTab('users')}>Usuários</Button>
-          <Button variant={tab === 'vehicles' ? 'primary' : 'ghost'} onClick={() => setTab('vehicles')}>Veículos</Button>
-          <Button variant={tab === 'checklists' ? 'primary' : 'ghost'} onClick={() => setTab('checklists')}>Checklists</Button>
-          <Button variant={tab === 'suppliers' ? 'primary' : 'ghost'} onClick={() => setTab('suppliers')}>Fornecedores</Button>
-        </div>
+        <div className="flex gap-2 flex-wrap h-auto w-full">
+           <Button variant={tab === 'users' ? 'primary' : 'ghost'} onClick={() => setTab('users')}>Usuários</Button>
+           <Button variant={tab === 'vehicles' ? 'primary' : 'ghost'} onClick={() => setTab('vehicles')}>Veículos</Button>
+           <Button variant={tab === 'checklists' ? 'primary' : 'ghost'} onClick={() => setTab('checklists')}>Checklists</Button>
+           <Button variant={tab === 'suppliers' ? 'primary' : 'ghost'} onClick={() => setTab('suppliers')}>Fornecedores</Button>
+         </div>
       </Card>
       {tab === 'users' && <UsersAdmin />}
       {tab === 'vehicles' && <VehiclesAdmin />}

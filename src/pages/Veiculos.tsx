@@ -68,39 +68,41 @@ export default function Veiculos() {
           </SimpleModal>
         </div>
       </Card>
-      <DataTable
-        columns={[
-          ...columns,
-          {
-            key: 'actions',
-            header: 'Ações',
-            render: (v) => (
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => setEditing(v as Vehicle)}
-                >
-                  Editar
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={async () => {
-                    try {
-                      await remove.mutateAsync((v as Vehicle).id)
-                      toast.success('Removido')
-                    } catch (e: any) {
-                      toast.error(e.message)
-                    }
-                  }}
-                >
-                  Remover
-                </Button>
-              </div>
-            ),
-          },
-        ]}
-        data={data ?? []}
-      />
+      <div className="overflow-x-auto">
+        <DataTable
+          columns={[
+            ...columns,
+            {
+              key: 'actions',
+              header: 'Ações',
+              render: (v) => (
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setEditing(v as Vehicle)}
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={async () => {
+                      try {
+                        await remove.mutateAsync((v as Vehicle).id)
+                        toast.success('Removido')
+                      } catch (e: any) {
+                        toast.error(e.message)
+                      }
+                    }}
+                  >
+                    Remover
+                  </Button>
+                </div>
+              ),
+            },
+          ]}
+          data={data ?? []}
+        />
+      </div>
       <SimpleModal open={!!editing} onClose={() => setEditing(null)} title="Editar veículo">
         <div className="space-y-3">
           <Input placeholder="Placa" value={editing?.plate ?? ''} onChange={(e) => setEditing({ ...(editing as Vehicle), plate: e.target.value })} />

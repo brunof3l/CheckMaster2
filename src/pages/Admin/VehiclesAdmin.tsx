@@ -144,7 +144,7 @@ export default function VehiclesAdmin() {
       header: 'Ativo',
       render: (v) => <Badge variant={v.active ? 'success' : 'destructive'}>{v.active ? 'sim' : 'inativo'}</Badge>,
     },
-    { key: 'created_at', header: 'Criado em' },
+    { key: 'created_at', header: 'Criado em', render: (v) => new Date(v.created_at).toLocaleString('pt-BR') },
     {
       key: 'actions',
       header: 'Ações',
@@ -273,7 +273,7 @@ export default function VehiclesAdmin() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
           <Input placeholder="Buscar por placa" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <div className="mt-4">
+        <div className="mt-4 overflow-x-auto">
           <DataTable columns={columns} data={(data ?? []) as any} rowClassName={(v) => (v.active ? '' : 'opacity-60')} />
         </div>
       </Card>

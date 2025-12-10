@@ -4,15 +4,16 @@ import Button from '@/components/ui/Button'
 
 type Item = { id: string; label: string; checked: boolean; problem: boolean; notes: string }
 
-export default function DefectsStep({ checklistId, initialItems = [], onPrev, onNext }: { checklistId: string; initialItems?: any[]; onPrev: () => void; onNext: () => void }) {
+export default function DefectsStep({ checklistId, initialItems = [], initialNotes, onPrev, onNext }: { checklistId: string; initialItems?: any[]; initialNotes?: string; onPrev: () => void; onNext: () => void }) {
   const [items, setItems] = useState<Item[]>([])
   const [saving, setSaving] = useState(false)
+  const [generalNotes, setGeneralNotes] = useState(initialNotes || '')
 
   useEffect(() => {
     const normalized: Item[] = (initialItems ?? []).map((it: any, idx: number) => ({
       id: it.id ?? it.key ?? `i-${idx}`,
       label: it.label ?? it.name ?? String(it),
-      checked: !!(it.checked ?? it.ok),
+      checked: !!it.checked,
       problem: !!it.problem,
       notes: it.notes ?? '',
     }))
@@ -20,7 +21,13 @@ export default function DefectsStep({ checklistId, initialItems = [], onPrev, on
   }, [initialItems])
 
   function toggleChecked(id: string) {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)))
+    setItems((prev) =>
+      prev.map((i) => {
+        if (i.id !== id) return i
+        const newChecked = !i.checked
+        return { ...i, checked: newChecked, problem: newChecked }
+      })
+    )
   }
 
   function toggleProblem(id: string) {
@@ -37,7 +44,8 @@ export default function DefectsStep({ checklistId, initialItems = [], onPrev, on
       const payload = items.map((i) => ({ id: i.id, label: i.label, checked: !!i.checked, problem: !!i.problem, notes: i.notes || '' }))
       const { data: existing } = await supabase.from('checklists').select('items').eq('id', checklistId).single()
       const meta = (existing?.items?.meta ?? {}) as any
-      const out = { meta, defects: payload }
+      const outMeta = { ...meta, defects_note: generalNotes }
+      const out = { meta: outMeta, defects: payload }
       const { error } = await supabase.from('checklists').update({ items: out, updated_at: new Date() }).eq('id', checklistId)
       if (error) throw new Error(error.message)
       return true
@@ -66,9 +74,17 @@ export default function DefectsStep({ checklistId, initialItems = [], onPrev, on
                 {i.problem ? 'Problema' : 'OK'}
               </button>
             </label>
-            <textarea className="w-full mt-2 p-2 rounded bg-muted border border-border text-sm outline-none focus:ring-2 focus:ring-primary/40" value={i.notes} onChange={(e) => updateNote(i.id, e.target.value)} placeholder="Observações" />
           </div>
         ))}
+      </div>
+      <div className="mt-4">
+        <div className="text-sm text-muted-foreground mb-1">Outros defeitos (descreva)</div>
+        <textarea
+          className="w-full min-h-[80px] rounded-md bg-muted border border-border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+          placeholder="Ex.: barulho na suspensão, vazamento, etc."
+          value={generalNotes}
+          onChange={(e) => setGeneralNotes(e.target.value)}
+        />
       </div>
       <div className="mt-4 flex justify-between">
         <Button variant="ghost" onClick={onPrev}>Voltar</Button>
@@ -77,4 +93,3 @@ export default function DefectsStep({ checklistId, initialItems = [], onPrev, on
     </div>
   )
 }
-
