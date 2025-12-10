@@ -94,7 +94,7 @@ export default function Checklists() {
         title="Checklists"
         action={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="md:hidden" onClick={() => setShowFilters((v) => !v)}>
+            <Button variant="ghost" size="icon" className="border border-border md:hidden" onClick={() => setShowFilters(!showFilters)}>
               <Filter size={18} />
             </Button>
             <Link to="/checklists/new">
