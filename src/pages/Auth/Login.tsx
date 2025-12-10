@@ -32,9 +32,8 @@ export default function Login() {
   return (
     <div className="w-full flex items-center justify-center py-24">
       <Card className="w-full max-w-sm p-6">
-        <div className="mb-2 text-center">
-          <h1 className="text-xl font-semibold">CheckMaster</h1>
-          <p className="text-muted-foreground text-sm">Acesse sua conta</p>
+        <div className="flex justify-center mb-6">
+          <img src="/logo-vertical.png" alt="CheckMaster Logo" className="h-24 w-auto object-contain" />
         </div>
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
           <div>
