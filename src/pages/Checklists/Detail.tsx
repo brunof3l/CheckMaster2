@@ -141,15 +141,15 @@ export default function ChecklistDetail() {
                 </div>
                 <div>
                   <span className="text-muted-foreground text-sm">Serviço</span>
-                  <div>{meta.service || '-'}</div>
+                  <div>{meta.service || data?.service || '-'}</div>
                 </div>
                 <div>
                   <span className="text-muted-foreground text-sm">KM</span>
-                  <div>{meta.km || '-'}</div>
+                  <div>{meta.km || data?.km || '-'}</div>
                 </div>
                 <div>
                   <span className="text-muted-foreground text-sm">Responsável</span>
-                  <div>{meta.responsavel || '-'}</div>
+                  <div>{meta.responsavel || data?.users?.name || '-'}</div>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Data de criação</span>

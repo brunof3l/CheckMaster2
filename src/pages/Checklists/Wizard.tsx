@@ -440,9 +440,9 @@ export default function ChecklistWizard() {
           service: (formValues as any).service_description || (formValues as any).service || null,
           km: (formValues as any).km ? Number((formValues as any).km) : null,
           responsavel: (formValues as any).responsavel || null,
-          defects_note: existingDefectsNote,
-          budget_total: budgetTotal,
-          budget_notes: budgetNotes,
+          defects_note: existingDefectsNote || null,
+          budget_total: budgetTotal || null,
+          budget_notes: budgetNotes || null,
         },
       };
 
