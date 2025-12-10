@@ -42,7 +42,7 @@ const columns: Column<ChecklistRow>[] = [
           (() => {
             const d = getDaysOpen(r.created_at)
             const text = d <= 0 ? 'Hoje' : d >= 2 ? `${d} dias atrasado` : `${d} dia${d > 1 ? 's' : ''}`
-            const variant = d >= 2 ? 'destructive' : 'secondary'
+            const variant = d >= 2 ? 'destructive' : 'default'
             return <Badge variant={variant}>{text}</Badge>
           })()
         )}
@@ -165,7 +165,11 @@ export default function Checklists() {
               <div className="text-sm text-red-600">Atenção (+48h)</div>
               <div className="text-3xl font-bold text-red-600">{stats?.late ?? 0}</div>
             </div>
-            <Button variant={showDelayedOnly ? 'destructive' : 'outline'} onClick={() => setShowDelayedOnly(!showDelayedOnly)}>
+            <Button
+              variant="ghost"
+              className={showDelayedOnly ? 'border-red-500 text-red-600 bg-red-500/10' : ''}
+              onClick={() => setShowDelayedOnly(!showDelayedOnly)}
+            >
               {showDelayedOnly ? 'Mostrar todos' : 'Ver mais'}
             </Button>
           </div>
@@ -250,7 +254,7 @@ export default function Checklists() {
                     {r.status !== 'finalizado' && (() => {
                       const d = getDaysOpen(r.created_at)
                       const text = d <= 0 ? 'Hoje' : d >= 2 ? `${d} dias atrasado` : `${d} dia${d > 1 ? 's' : ''}`
-                      const variant = d >= 2 ? 'destructive' : 'secondary'
+                      const variant = d >= 2 ? 'destructive' : 'default'
                       return <Badge variant={variant}>{text}</Badge>
                     })()}
                   </div>
