@@ -391,50 +391,61 @@ export default function ChecklistWizard() {
   }
 
   async function saveAndExit() {
-    if (!checklistId) return
     try {
+      if (!checklistId) return
       setFinalizing(true)
 
-      // Persist pending uploads first
-      if (pendingFiles.length > 0) await savePhotos()
-      if (budgetPendingFiles.length > 0) await saveBudget()
-
-      // 1) Fetch: get latest items from DB to avoid overwriting defects
-      const { data: existing, error: fetchErr } = await supabase
+      // 1. BUSCAR DADOS DO SERVIDOR (Para pegar os defeitos que já foram salvos no Passo 2)
+      const { data: serverData, error: fetchError } = await supabase
         .from('checklists')
         .select('items')
         .eq('id', checklistId)
         .single()
-      if (fetchErr) throw new Error(fetchErr.message)
 
-      const currentItems = (existing?.items ?? {}) as any
-      const formValues = getValues() // Step 1 values: service, km, responsavel, notes already handled elsewhere
+      if (fetchError) throw fetchError
 
-      // 2) Merge: preserve defects and existing meta, update only form fields and costs
-      const mergedItems: any = {
-        ...currentItems,
-        defects: currentItems?.defects ?? items.defects,
+      // 2. RESGATAR DEFEITOS DO SERVIDOR
+      // Se não houver defects no servidor, usa array vazio. NÃO usa o estado local 'items.defects' pois ele pode estar desatualizado no passo 4.
+      const serverItems = serverData?.items as any
+      const existingDefects = serverItems?.defects || []
+      const existingDefectsNote = serverItems?.meta?.defects_note || ''
+
+      // 3. PREPARAR DADOS DO FORMULÁRIO ATUAL
+      const formValues = getValues() // Step 1 (service, km, responsavel)
+
+      // 4. MONTAR O PAYLOAD FINAL (MERGE)
+      const finalItems = {
+        ...items, // Mantém estrutura base
+        defects: existingDefects, // OBRIGATÓRIO: Mantém o que estava no banco
         meta: {
-          ...(currentItems?.meta ?? {}),
-          service: formValues.service,
+          ...items.meta,
+          ...(serverItems?.meta || {}), // Mantém outros metas
+          service: (formValues as any).service_description || formValues.service,
           km: Number(formValues.km),
-          responsavel: formValues.responsavel,
-          budget_total: (items.meta as any)?.budget_total,
-          budget_notes: (items.meta as any)?.budget_notes,
+          responsavel: (formValues as any).responsavel,
+          defects_note: existingDefectsNote, // Mantém a nota de defeito do banco
+          budget_total: (items as any)?.meta?.budget_total,
+          budget_notes: (items as any)?.meta?.budget_notes,
         },
-      }
+      } as any
 
-      // 3) Update: save merged items back
-      const { error: updErr } = await supabase
+      // 5. ATUALIZAR
+      const { error } = await supabase
         .from('checklists')
-        .update({ items: mergedItems })
+        .update({
+          items: finalItems,
+          status: 'finalizado',
+          is_locked: true,
+        })
         .eq('id', checklistId)
-      if (updErr) throw new Error(updErr.message)
 
-      toast.success('Checklist salvo com sucesso')
+      if (error) throw error
+
+      toast.success('Checklist finalizado com sucesso!')
       navigate('/checklists')
-    } catch (e: any) {
-      toast.error(e.message ?? 'Erro ao salvar checklist')
+    } catch (error: any) {
+      console.error(error)
+      toast.error('Erro ao finalizar checklist')
     } finally {
       setFinalizing(false)
     }

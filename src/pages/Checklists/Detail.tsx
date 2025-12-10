@@ -191,24 +191,44 @@ export default function ChecklistDetail() {
 
       <Card className="p-4">
         <h2 className="font-semibold mb-3">Fotos</h2>
-        <div className="flex flex-wrap items-center gap-2 md:gap-4">
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleUpload}
-            disabled={data?.is_locked || data?.status === 'finalizado'}
-          />
-          <Button variant="ghost" onClick={() => setOpen(true)}>
-            Abrir galeria
-          </Button>
-          <Button
-            onClick={handleSaveFiles}
-            loading={saving}
-            disabled={saving || pendingFiles.length === 0 || data?.is_locked || data?.status === 'finalizado'}
-          >
-            Salvar alterações
-          </Button>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4 mt-2">
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleUpload}
+              disabled={data?.is_locked || data?.status === 'finalizado'}
+              className="hidden"
+              id="photo-upload"
+            />
+            <label
+              htmlFor="photo-upload"
+              className="cursor-pointer bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2 rounded-md flex items-center justify-center text-sm font-medium w-full md:w-auto"
+            >
+              Escolher arquivos
+            </label>
+          </div>
+
+          <span className="text-sm text-muted-foreground truncate max-w-[200px] md:max-w-none">
+            {pendingFiles.length > 0
+              ? (pendingFiles.length === 1 ? pendingFiles[0].name : `${pendingFiles.length} arquivo(s) selecionado(s)`) 
+              : 'Nenhum arquivo escolhido'}
+          </span>
+
+          <div className="flex gap-2 w-full md:w-auto">
+            <Button variant="ghost" className="flex-1 md:flex-none border border-border" onClick={() => setOpen(true)}>
+              Abrir galeria
+            </Button>
+            <Button
+              onClick={handleSaveFiles}
+              loading={saving}
+              disabled={saving || pendingFiles.length === 0 || data?.is_locked || data?.status === 'finalizado'}
+              className="flex-1 md:flex-none"
+            >
+              {saving ? 'Enviando...' : 'Salvar alterações'}
+            </Button>
+          </div>
         </div>
         {pendingFiles.length > 0 && (
           <div className="text-sm text-muted-foreground mt-2">{pendingFiles.length} arquivo(s) para enviar</div>
