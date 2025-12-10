@@ -327,17 +327,14 @@ export default function ChecklistWizard() {
           next.push({ path, name: f.name, size: f.size, type: f.type || `application/${ext}`, created_at: new Date().toISOString() })
         }
       }
-      const { budget_total, budget_notes, ...cleanMeta } = (items.meta ?? {}) as any
-      const payloadItems: ItemsPayload = {
-        meta: cleanMeta,
-        defects: items.defects,
-      }
+
+      // Atualiza somente anexos de orçamento para não sobrescrever itens/defeitos
       const { error } = await supabase
         .from('checklists')
-        .update({ items: payloadItems, budgetAttachments: next })
+        .update({ budgetAttachments: next })
         .eq('id', checklistId)
       if (error) throw new Error(error.message)
-      setItems(payloadItems)
+
       setBudgetPendingFiles([])
       toast.success('Orçamento salvo')
     } catch (e: any) {

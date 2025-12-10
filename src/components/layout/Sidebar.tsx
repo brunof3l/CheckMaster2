@@ -19,7 +19,9 @@ export default function Sidebar({ onClose, className }: { onClose?: () => void; 
   return (
     <aside className={cn("w-64 bg-muted border-r border-border p-4 flex flex-col h-full", className)}>
       <div className="flex items-center h-24 px-0">
-        <img src="/logo-horizontal.png" alt="CheckMaster" className="h-full w-full object-contain" />
+        <NavLink to="/checklists" onClick={onClose} className="block h-full w-full">
+          <img src="/logo-horizontal.png" alt="CheckMaster" className="h-full w-full object-contain cursor-pointer" />
+        </NavLink>
       </div>
       <nav className="mt-4 space-y-1">
         {items.map(({ to, label, icon: Icon }) => (
