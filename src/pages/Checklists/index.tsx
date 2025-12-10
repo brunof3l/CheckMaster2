@@ -12,7 +12,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getDashboardStats } from '@/services/checklists'
 import { useQuery } from '@tanstack/react-query'
 import { exportChecklistPDF } from '@/services/pdfExport'
-import { FileText } from 'lucide-react'
+import { FileText, Filter } from 'lucide-react'
 import { toast } from 'sonner'
 
 type ChecklistRow = Checklist
@@ -66,6 +66,7 @@ export default function Checklists() {
   const [status, setStatus] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
 
   const location = useLocation()
   const navigate = useNavigate()
@@ -92,9 +93,14 @@ export default function Checklists() {
       <HeaderPage
         title="Checklists"
         action={
-          <Link to="/checklists/new">
-            <Button> Criar Checklist </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" className="md:hidden" onClick={() => setShowFilters((v) => !v)}>
+              <Filter size={18} />
+            </Button>
+            <Link to="/checklists/new">
+              <Button> Criar Checklist </Button>
+            </Link>
+          </div>
         }
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -107,35 +113,37 @@ export default function Checklists() {
           <div className="text-3xl font-bold text-red-600">{stats?.late ?? 0}</div>
         </Card>
       </div>
-      <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          <Input placeholder="Buscar por placa" value={placa} onChange={(e) => setPlaca(e.target.value)} />
-          <Input placeholder="Fornecedor" value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} />
-          <select
-            className="rounded-md bg-muted border border-border px-3 py-2 text-sm"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option value="">Todos</option>
-            <option value="em_andamento">Em andamento</option>
-            <option value="finalizado">Finalizado</option>
-            <option value="cancelado">Cancelado</option>
-          </select>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </div>
-        <div className="mt-4">
-          {isLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-10" />
-              <Skeleton className="h-10" />
-              <Skeleton className="h-10" />
-            </div>
-          ) : (
-            <DataTable columns={columns} data={(data ?? []) as any} />
-          )}
-        </div>
-      </Card>
+      <div className={`md:block mt-4 ${showFilters ? 'block' : 'hidden'}`}>
+        <Card className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <Input placeholder="Buscar por placa" value={placa} onChange={(e) => setPlaca(e.target.value)} />
+            <Input placeholder="Fornecedor" value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} />
+            <select
+              className="rounded-md bg-muted border border-border px-3 py-2 text-sm"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="">Todos</option>
+              <option value="em_andamento">Em andamento</option>
+              <option value="finalizado">Finalizado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          </div>
+        </Card>
+      </div>
+      <div className="mt-4">
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+          </div>
+        ) : (
+          <DataTable columns={columns} data={(data ?? []) as any} />
+        )}
+      </div>
     </div>
   )
 }

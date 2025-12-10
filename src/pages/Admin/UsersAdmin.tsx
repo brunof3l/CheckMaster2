@@ -109,9 +109,12 @@ export default function UsersAdmin() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Input placeholder="Buscar por nome ou e-mail" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <div className="mt-4">
+        <div className="mt-4 overflow-x-auto">
           <DataTable columns={columns} data={(data ?? []) as any} />
         </div>
++        <div className="mt-4 overflow-x-auto">
++          <DataTable columns={columns} data={(data ?? []) as any} />
++        </div>
       </Card>
     </div>
   )
