@@ -24,7 +24,18 @@ import imageCompression from 'browser-image-compression'
 type Step = 1 | 2 | 3 | 4
 
 type DefectItem = { key: string; label: string; ok: boolean; notes?: string }
-type ItemsPayload = { meta: { service?: string; km?: number; responsavel?: string; defects_note?: string; budget_total?: number; budget_notes?: string }; defects: DefectItem[] }
+type ItemsPayload = {
+  meta: {
+    service?: string;
+    km?: number;
+    responsavel?: string;
+    plate?: string;
+    defects_note?: string | null;
+    budget_total?: number | null | undefined;
+    budget_notes?: string | null | undefined;
+  };
+  defects: DefectItem[];
+}
 
 const defectCatalog: DefectItem[] = [
   { key: 'farol_esq', label: 'Farol Esq.', ok: true },
@@ -84,6 +95,7 @@ const schema = z.object({
   responsavel: z.string().min(2, 'Informe o responsável'),
   vehicle_id: z.string().min(1, 'Selecione o veículo'),
   supplier_id: z.string().min(1, 'Selecione o fornecedor'),
+  plate: z.string().optional(), // campo opcional para placa
 })
 
 export default function ChecklistWizard() {
